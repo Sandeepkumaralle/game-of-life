@@ -23,12 +23,6 @@
     <jelastic.environment>wakaleo</jelastic.environment>
   </properties>
 
-  <scm>
-    <connection>scm:git:git@github.com:${github.account}/game-of-life.git</connection>
-    <developerConnection>scm:git:git@github.com:${github.account}/game-of-life.git</developerConnection>
-    <url>https://github.com/${github.account}/game-of-life</url>
-  </scm>
-
   <modules>
     <module>gameoflife-build</module>
     <module>gameoflife-core</module>
@@ -36,15 +30,8 @@
   </modules>
 
   <build>
-    <extensions>
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-        <artifactId>wagon-webdav-jackrabbit</artifactId>
-        <version>3.5.2</version>
-      </extension>
-    </extensions>
-
     <plugins>
+      <!-- Compiler -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -55,6 +42,7 @@
         </configuration>
       </plugin>
 
+      <!-- Surefire -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -62,87 +50,75 @@
         <configuration>
           <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
         </configuration>
-        <executions>
-          <execution>
-            <id>unit-tests</id>
-            <phase>test</phase>
-            <goals><goal>test</goal></goals>
-            <configuration>
-              <includes>
-                <include>**/When*.java</include>
-                <include>**/*Test.java</include>
-              </includes>
-              <excludes>
-                <exclude>%regex[.*integration.*]</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-          <execution>
-            <id>integration-tests</id>
-            <phase>integration-test</phase>
-            <goals><goal>test</goal></goals>
-            <configuration>
-              <includes>
-                <include>%regex[.*integration.*]</include>
-              </includes>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
 
+      <!-- WAR plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.4.0</version>
+      </plugin>
+
+      <!-- JaCoCo -->
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>0.8.10</version>
         <executions>
           <execution>
-            <id>jacoco-initialize</id>
-            <phase>prepare-agent</phase>
+            <id>prepare-agent</id>
             <goals><goal>prepare-agent</goal></goals>
           </execution>
           <execution>
-            <id>jacoco-report</id>
+            <id>report</id>
             <phase>verify</phase>
             <goals><goal>report</goal></goals>
           </execution>
         </executions>
       </plugin>
 
+      <!-- SpotBugs -->
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>3.0.1</version>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.8.3.0</version>
         <configuration>
-          <preparationGoals>clean verify</preparationGoals>
-          <pushChanges>true</pushChanges>
-          <checkModificationExcludes>
-            <checkModificationExclude>**/README.md</checkModificationExclude>
-          </checkModificationExcludes>
+          <effort>Max</effort>
+          <xmlOutput>true</xmlOutput>
         </configuration>
       </plugin>
 
+      <!-- PMD -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <version>3.1.1</version>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>3.21.1</version>
+        <configuration>
+          <targetJdk>17</targetJdk>
+          <aggregate>true</aggregate>
+          <format>xml</format>
+          <minimumTokens>20</minimumTokens>
+          <failOnViolation>true</failOnViolation>
+        </configuration>
       </plugin>
 
+      <!-- Checkstyle -->
       <plugin>
-        <groupId>com.jelastic</groupId>
-        <artifactId>jelastic-maven-plugin</artifactId>
-        <version>1.6</version>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.3.0</version>
         <configuration>
-          <email>${jelastic.username}</email>
-          <password>${jelastic.password}</password>
-          <context>${jelastic.context}</context>
-          <environment>${jelastic.environment}</environment>
-          <api_hoster>app.jelastic.servint.net</api_hoster>
+          <configLocation>gameoflife-build/checkstyle.xml</configLocation>
+          <encoding>UTF-8</encoding>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
         </configuration>
       </plugin>
     </plugins>
   </build>
 
   <dependencies>
+    <!-- Unit Testing -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -161,6 +137,8 @@
       <version>5.11.0</version>
       <scope>test</scope>
     </dependency>
+
+    <!-- Cucumber -->
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
@@ -180,36 +158,6 @@
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
-    </profile>
-
-    <profile>
-      <id>metrics</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-pmd-plugin</artifactId>
-            <version>3.21.1</version>
-            <configuration>
-              <targetJdk>17</targetJdk>
-              <aggregate>true</aggregate>
-              <format>xml</format>
-              <minimumTokens>20</minimumTokens>
-              <failOnViolation>true</failOnViolation>
-              <failurePriority>2</failurePriority>
-            </configuration>
-          </plugin>
-          <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
-            <version>4.8.3.0</version>
-            <configuration>
-              <effort>Max</effort>
-              <xmlOutput>true</xmlOutput>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
 
